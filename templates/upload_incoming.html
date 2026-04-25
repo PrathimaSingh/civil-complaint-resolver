@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload New Complaint</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; }
+        .message { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .form-section { border: 1px solid #ccc; padding: 20px; margin: 20px auto; max-width: 600px; border-radius: 8px; }
+        .tab-buttons { margin-bottom: 20px; }
+        .tab-button { padding: 10px 20px; margin: 0 5px; border: none; background: #f0f0f0; cursor: pointer; border-radius: 4px; }
+        .tab-button.active { background: #007bff; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+    </style>
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from buttons
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Show image tab by default
+        document.addEventListener('DOMContentLoaded', function() {
+            showTab('image');
+        });
+    </script>
+</head>
+<body>
+    <h2>📤 Upload New Complaint</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <p class="{% if category == 'error' %}error{% else %}message{% endif %}">{{ msg }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="tab-buttons">
+        <button class="tab-button active" onclick="showTab('image')">📷 Image Upload</button>
+        <button class="tab-button" onclick="showTab('url')">🔗 Image URL</button>
+        <button class="tab-button" onclick="showTab('text')">📝 Text Description</button>
+    </div>
+
+    <!-- Image Upload Tab -->
+    <div id="image" class="tab-content form-section active">
+        <h3>Upload Complaint Image</h3>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*" required><br><br>
+            <p><em>Optional: Add text details</em></p>
+            <input type="text" name="complaint_title" placeholder="Complaint Title (optional)"><br>
+            <textarea name="complaint_description" placeholder="Additional Description (optional)"></textarea><br><br>
+            <button type="submit" style="padding:10px 20px; font-size:16px;">Upload & Process</button>
+        </form>
+    </div>
+
+    <!-- Image URL Tab -->
+    <div id="url" class="tab-content form-section">
+        <h3>Use Image from URL</h3>
+        <form method="post">
+            <input type="url" name="image_url" placeholder="https://example.com/complaint-image.jpg" required><br><br>
+            <p><em>Optional: Add text details</em></p>
+            <input type="text" name="complaint_title" placeholder="Complaint Title (optional)"><br>
+            <textarea name="complaint_description" placeholder="Additional Description (optional)"></textarea><br><br>
+            <button type="submit" style="padding:10px 20px; font-size:16px;">Process URL</button>
+        </form>
+    </div>
+
+    <!-- Text Only Tab -->
+    <div id="text" class="tab-content form-section">
+        <h3>Text-Based Complaint</h3>
+        <form method="post">
+            <input type="text" name="complaint_title" placeholder="Complaint Title" required><br>
+            <textarea name="complaint_description" placeholder="Detailed Description" required></textarea><br><br>
+            <button type="submit" style="padding:10px 20px; font-size:16px;">Submit Complaint</button>
+        </form>
+    </div>
+
+    <br>
+    <a href="/">← Back to Home</a>
+</body>
+</html>

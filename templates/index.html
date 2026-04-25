@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Civil Complaint Resolver</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 60px; background: #f8f9fa; }
+        h1 { color: #2c3e50; }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 15px;
+            font-size: 18px;
+            text-decoration: none;
+            border-radius: 8px;
+            color: white;
+        }
+        .incoming { background: #28a745; }
+        .resolved { background: #dc3545; }
+        .analytics { background: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>🛠️ Civil Complaint Resolver System</h1>
+    <p><strong>Select an action:</strong></p>
+    
+    <a href="/upload/incoming" class="btn incoming">📤 Upload New Complaint Image</a><br>
+    <a href="/upload/resolved" class="btn resolved">✅ Upload Resolved Image & Close Complaint</a><br>
+    <a href="/analytics" class="btn analytics">📊 View Analytics</a>
+</body>
+</html>

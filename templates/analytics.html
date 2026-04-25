@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Civil Complaint Resolver</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            min-width: 180px;
+        }
+        .stat h2 { margin: 5px 0; color: #3498db; }
+        .bar-container {
+            margin: 15px 0;
+        }
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .bar {
+            height: 25px;
+            background: linear-gradient(90deg, #3498db, #2980b9);
+            border-radius: 6px;
+            transition: width 1s ease;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #34495e;
+            color: white;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .refresh-btn:hover { background: #219653; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Civil Complaint Analytics Dashboard</h1>
+        <p style="text-align:center; color:#7f8c8d;">Last Updated: {{ now }}</p>
+
+        <button class="refresh-btn" onclick="location.reload()">🔄 Refresh Analytics</button>
+
+        <!-- Summary Stats -->
+        <div class="card">
+            <h2>Overall Summary</h2>
+            <div class="summary">
+                <div class="stat">
+                    <h2>{{ analytics.total_complaints }}</h2>
+                    <p>Total Complaints</p>
+                </div>
+                <div class="stat">
+                    <h2 style="color:#27ae60;">{{ analytics.open_complaints }}</h2>
+                    <p>Open Complaints</p>
+                </div>
+                <div class="stat">
+                    <h2 style="color:#e74c3c;">{{ analytics.closed_complaints }}</h2>
+                    <p>Closed Complaints</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Wise -->
+        <div class="card">
+            <h2>1. Category Wise Breakdown</h2>
+            {% for cat, data in analytics.by_category.items() %}
+            <div class="bar-container">
+                <div class="bar-label">
+                    <span>{{ cat }}</span>
+                    <span><strong>{{ data.total }}</strong> complaints</span>
+                </div>
+                <div class="bar" style="width: {{ (data.total / (analytics.total_complaints or 1)) * 100 }}%;"></div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Complaint Type Wise -->
+        <div class="card">
+            <h2>2. Complaint Type Wise Count</h2>
+            <table>
+                <tr>
+                    <th>Complaint Type</th>
+                    <th>Count</th>
+                </tr>
+                {% for ctype, count in analytics.by_complaint_type.items() %}
+                <tr>
+                    <td>{{ ctype|capitalize }}</td>
+                    <td><strong>{{ count }}</strong></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <!-- Routed To (Authority) -->
+        <div class="card">
+            <h2>3. Routed To (Authority) Wise</h2>
+            <table>
+                <tr>
+                    <th>Authority</th>
+                    <th>Count</th>
+                </tr>
+                {% for auth, count in analytics.by_authority.items() %}
+                <tr>
+                    <td>{{ auth }}</td>
+                    <td><strong>{{ count }}</strong></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div style="text-align:center; margin-top:30px;">
+            <a href="/">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
