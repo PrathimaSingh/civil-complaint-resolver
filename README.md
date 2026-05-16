@@ -112,6 +112,14 @@ COLLECTION_NAME=civil_complaints
 ```bash
 python UI_App.py
 ```
+```
+flask --app src/civic_redressal/main.py run
+
+OR
+
+$env:PYTHONPATH = "src"
+flask --app civic_redressal.main run
+```
 
 #### Access the Application
 Open your browser and go to: http://localhost:5000
@@ -129,6 +137,11 @@ Open your browser and go to: http://localhost:5000
 #### Start the CLI Application
 ```bash
 python civil_complaint_resolver.py
+```
+```
+$env:PYTHONPATH = "src"
+python -c "import civic_redressal; print('ok')"
+python -m civic_redressal.cli
 ```
 
 #### CLI Commands

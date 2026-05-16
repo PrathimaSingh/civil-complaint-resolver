@@ -1,14 +1,11 @@
-# flask_App.py - Flask Web Dashboard with Beautiful Analytics
-from flask import Flask, render_template, request, redirect, url_for, flash
+# src/my_project/web/routes.py
 import os
-from datetime import datetime
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
-# Import your main resolver functions
-from civil_complaint_resolver import process_new_complaint, close_complaint, tracker_node
-
-app = Flask(__name__)
-app.secret_key = "civil_complaint_secret_key_2026"
+from civic_redressal.services.complaint_service import close_complaint, process_new_complaint
+from civic_redressal.agents.analytics.agent import run_analytics_agent
 
 # Folders
 UPLOAD_FOLDER_INCOMING = "./incoming_complaints"
@@ -21,21 +18,21 @@ os.makedirs(UPLOAD_FOLDER_RESOLVED, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ====================== ROUTES ======================
+web_bp = Blueprint("web", __name__)
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+@web_bp.get("/")
+def home():
+    return render_template("index.html")
 
-@app.route('/upload/incoming', methods=['GET', 'POST'])
+@web_bp.route('/upload/incoming', methods=['GET', 'POST'])
 def upload_incoming():
     if request.method == 'POST':
         # Check if this is a text-based complaint
-        complaint_title = request.form.get('complaint_title', '').strip()
-        complaint_description = request.form.get('complaint_description', '').strip()
+        title = request.form.get('complaint_title', '').strip()
+        description = request.form.get('complaint_description', '').strip()
         image_url = request.form.get('image_url', '').strip()
 
-        has_text = complaint_title or complaint_description
+        has_text = title or description
         has_file = 'file' in request.files and request.files['file'].filename
         has_url = image_url
 
@@ -68,16 +65,16 @@ def upload_incoming():
             filepath = ""
 
         try:
-            process_new_complaint(filepath, complaint_title, complaint_description)
+            process_new_complaint(filepath, title, description)
             flash('Complaint processed successfully!', 'success')
         except Exception as e:
             flash(f'Processing failed: {str(e)}', 'error')
 
-        return redirect(url_for('upload_incoming'))
+        return redirect(url_for('web.upload_incoming'))
 
     return render_template('upload_incoming.html')
 
-@app.route('/upload/resolved', methods=['GET', 'POST'])
+@web_bp.route('/upload/resolved', methods=['GET', 'POST'])
 def upload_resolved():
     if request.method == 'POST':
         complaint_id = request.form.get('complaint_id', '').strip()
@@ -110,15 +107,15 @@ def upload_resolved():
             except Exception as e:
                 flash(f'Image uploaded but closing failed: {str(e)}', 'warning')
 
-            return redirect(url_for('upload_resolved'))
+            return redirect(url_for('web.upload_resolved'))
 
     return render_template('upload_resolved.html')
 
-@app.route('/analytics')
+@web_bp.get('/analytics')
 def analytics():
     try:
-        # Call tracker_node to get fresh analytics
-        result = tracker_node({"image_path": ""})
+        # Call run_analytics_agent to get fresh analytics
+        result = run_analytics_agent({"image_path": ""})
         analytics_data = result.get("analytics", {})
 
         # Safety: Convert defaultdict to normal dict if needed
@@ -139,8 +136,3 @@ def analytics():
         print(f"Analytics Error: {e}")   # For debugging
         flash(f'Error generating analytics: {str(e)}', 'error')
         return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    print("🚀 Civil Complaint Resolver Web Dashboard Started")
-    print("Open browser → http://127.0.0.1:5000")
-    app.run(debug=True, host='0.0.0.0', port=5000)

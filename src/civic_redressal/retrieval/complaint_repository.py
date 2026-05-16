@@ -1,46 +1,12 @@
-# complaint_vector_db.py
-# Dedicated Vector Database for Civil Complaints (Images + Metadata)
-
+from datetime import datetime
+import json
 import os
 import uuid
-from datetime import datetime
-from typing import List, Dict, Optional
-
-from flask import json
-from langchain_chroma import Chroma
-from langchain_ollama import OllamaEmbeddings
+from typing import Dict, List, Optional
 from langchain_core.documents import Document
 import pandas as pd
-
-# ========================= CONFIG =========================
-CHROMA_DB_DIR = "./chroma_complaints_db"
-COLLECTION_NAME = "civil_complaints"
-
-# Use a good text embedding model (nomic-embed-text works well with Ollama)
-ef = OllamaEmbeddings(model="nomic-embed-text")
-
-# Initialize or load Vector Store
-def get_vectorstore() -> Chroma:
-    """Create or load the Chroma vector database"""
-    os.makedirs(CHROMA_DB_DIR, exist_ok=True)
-    
-    vectorstore = Chroma(
-        persist_directory=CHROMA_DB_DIR,
-        embedding_function=ef,
-        collection_name=COLLECTION_NAME
-    )
-    print(f"Vector Database ready → {CHROMA_DB_DIR} | Collection: {COLLECTION_NAME}")
-    return vectorstore
-
-# ====================== STORE COMPLAINT ======================
-def build_document_text(row):
-    return " | ".join([
-        f"Title: {row['title']}",
-        f"Description: {row['description']}",
-        f"Category: {row['category']}",
-        f"Subcategory: {row['sub_category']}",
-        f"Civic agency: {row['civic_agency']}"
-    ])
+from civic_redressal.retrieval.vectorstore import get_vectorstore
+from civic_redressal.retrieval.documents import build_document_text, build_query
 
 def store_complaint(
     complaint_id: str,
@@ -54,16 +20,18 @@ def store_complaint(
     confidence: Optional[float],
     image_path: Optional[str],
     image_hash: Optional[str] = None,
+    image_caption: Optional[str] = None,
     status: str = "open"
 ) -> str:
     """Store complaint in Vector DB (supports both image and text-only complaints)"""
     vectorstore = get_vectorstore()
 
-    print(f"In store_complaint")
-    print(f"Storing complaint → ID: {complaint_id} | Title: {title} | Category: {category} | Subcategory: {sub_category} | Authority: {civic_agency} | Has Image: {bool(image_path)}")
+    print("In store_complaint")
+    print(f"Storing complaint → ID: {complaint_id} | Title: {title} | Category: {category} | Subcategory: {sub_category} | Authority: {civic_agency} | Has Image: {bool(image_path)} | Severity: {severity} | Confidence: {confidence}  | Status: {status}  | Analysis: {analysis}  | Image Caption: {image_caption}  | Image Hash: {image_hash}")
     content = build_document_text({
         "title": title,
         "description": description,
+        "image_caption": image_caption or "",
         "category": category,
         "sub_category": sub_category,
         "civic_agency": civic_agency
@@ -76,12 +44,13 @@ def store_complaint(
         "status": status,
         "analysis": analysis,
         "category": category.lower(),
-        "sub_category": sub_category.lower(),
+        "sub_category": sub_category,
         "severity": severity or "other",
         "confidence": confidence,
         "civic_agency": civic_agency,
         "image_path": image_path or "",
         "image_hash": image_hash or "",
+        "image_caption": image_caption or "",
         "timestamp": datetime.now().isoformat()
     }
 
@@ -101,6 +70,7 @@ def store_multiple_documents_in_vector_db(complaints):
         {
             "title": "...",
             "description": "...",
+            "image_caption": "...",
             "category": "...",
             "sub_category": "...",
             "civic_agency": "...",
@@ -113,19 +83,28 @@ def store_multiple_documents_in_vector_db(complaints):
     ids = []
 
     for item in complaints:
-        doc_text = build_document_text(item)
-        metadata = {
-            "complaint_id": item.get("complaint_id", str(uuid.uuid4())),
+        doc_item = {
             "title": item["title"],
             "description": item["description"],
-            "category": item["category"],
-            "sub_category": item["sub_category"],
-            "civic_agency": item["civic_agency"],
+            "image_caption": item.get("image_caption", ""),
+            "category": item["complaint_type"],
+            "sub_category": item["complaint_subtype"],
+            "civic_agency": item["authority"],
+        }
+        doc_text = build_document_text(doc_item)
+        metadata = {
+            "complaint_id": item.get("complaint_id", str(uuid.uuid4())),
+            "title": doc_item["title"],
+            "description": doc_item["description"],
+            "category": doc_item["category"],
+            "sub_category": doc_item["sub_category"],
+            "civic_agency": doc_item["civic_agency"],
             "analysis": item.get("analysis", ""),
             "severity": item.get("severity", "other"),
             "confidence": item.get("confidence", None),
             "image_path": item.get("image_path", ""),
             "image_hash": item.get("image_hash", ""),
+            "image_caption": item.get("image_caption", ""),
             "status": item.get("status", "open"),
             "timestamp": datetime.now().isoformat()
         }
@@ -133,30 +112,18 @@ def store_multiple_documents_in_vector_db(complaints):
         doc_id = f"comp_{item.get('complaint_id', str(uuid.uuid4()))}_{uuid.uuid4().hex[:6]}"
 
         print(f"Stored in Vector DB → Complaint ID: {item.get('complaint_id', str(uuid.uuid4()))} \
-              | Type: {item['category']} | Subtype: {item['sub_category']} | Authority: {item['civic_agency']} \
-                  | Has Image: {bool(item.get('image_path', ''))}")
-    
+              | Type: {doc_item['category']} | Subtype: {doc_item['sub_category']} | Authority: {doc_item['civic_agency']} \
+                  | Has Image: {bool(item.get('image_path', ''))} | Image Caption: {item.get('image_caption', '')}")
+
         documents.append(Document(page_content=doc_text, metadata=metadata))
-        ids.append(item.get("complaint_id", str(uuid.uuid4())))
+        ids.append(doc_id)
 
     get_vectorstore().add_documents(documents=documents, ids=ids)
 
     return ids
 
-# ====================== RETRIEVE COMPLAINT ======================
-
-def build_query(title="", description="", category="", subcategory="", civic_agency=""):
-    parts = [
-        f"Title: {title}" if title else "",
-        f"Description: {description}" if description else "",
-        f"Category: {category}" if category else "",
-        f"Subcategory: {subcategory}" if subcategory else "",
-        f"Civic agency: {civic_agency}" if civic_agency else ""
-    ]
-    return " | ".join([p for p in parts if p.strip()])
-    
-def retrieve_top_k_complaints(title="", description="", category="", subcategory="", civic_agency="", top_k=5, metadata_filter=None) -> List[Document]:
-    query = build_query(title, description, category, subcategory, civic_agency)
+def retrieve_top_k_complaints(title="", description="", image_caption="", category="", sub_category="", civic_agency="", top_k=5, metadata_filter=None) -> List[Document]:
+    query = build_query(title, description, image_caption, category, sub_category, civic_agency)
     results = get_vectorstore().similarity_search_with_score(
         query=query,
         k=top_k,
@@ -167,6 +134,7 @@ def retrieve_top_k_complaints(title="", description="", category="", subcategory
         output.append({
             "title": doc.metadata.get("title", ""),
             "description": doc.metadata.get("description", ""),
+            "image_caption": doc.metadata.get("image_caption", ""),
             "category": doc.metadata.get("category", ""),
             "sub_category": doc.metadata.get("sub_category", ""),
             "civic_agency": doc.metadata.get("civic_agency", ""),
@@ -174,6 +142,7 @@ def retrieve_top_k_complaints(title="", description="", category="", subcategory
             "content": doc.page_content
         })
     return output
+
 # ====================== LIST COMPLAINTS ======================
 def list_all_complaints():
     """Retrieve and display all complaints from Chroma vector DB."""
@@ -216,6 +185,7 @@ def list_all_complaints():
             "created_at": meta.get("timestamp", "N/A"),
             "image_path": meta.get("image_path", ""),
             "image_hash": meta.get("image_hash", ""),
+            "image_caption": meta.get("image_caption", "N/A"),
             "page_content": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content
         })
     
@@ -336,41 +306,10 @@ def search_complaints(query: str, k: int = 5) -> List[Document]:
     return retriever.invoke(query)
 
 
-def get_complaint_by_id(complaint_id: str) -> List[Document]:
+def get_complaint_by_id(complaint_id: str) -> dict:
     """Retrieve specific complaint from vector DB"""
     vectorstore = get_vectorstore()
     results = vectorstore.get(
         where={"complaint_id": complaint_id}
     )
     return results
-
-
-# ====================== UTILITY ======================
-def list_all_complaints_old(limit: int = 50):
-    """For debugging / analytics"""
-    vectorstore = get_vectorstore()
-    results = vectorstore.get(limit=limit)
-    print(f"Total documents in Vector DB: {len(results.get('ids', []))}")
-    print("Sample Complaints:")
-    for i in range(min(limit, len(results.get("ids", [])))):
-        metadata = results["metadatas"][i]
-        content = results["documents"][i]
-        print(f"\nDocument ID: {results['ids'][i]}")
-        print(f" - ID: {metadata.get('complaint_id')} | Type: {metadata.get('type')} | Subtype: {metadata.get('subtype')} | Authority: {metadata.get('authority')} \
-              | Description: {metadata.get('description')} | Title: {metadata.get('title')} | Status: {metadata.get('status')} | Has Image: {metadata.get('has_image')} \
-                | Created: {metadata.get('timestamp')} | Image Path: {metadata.get('image_path')} | Resolved Image: {metadata.get('resolved_image_path')} \
-                    | Confidence: {metadata.get('confidence')} | Severity: {metadata.get('severity')} \nContent: {content[:200]}...")
-    return results
-
-
-# Test / Initialization
-if __name__ == "__main__":
-    print("=== Civil Complaint Vector Database ===")
-
-    while True:
-        cmd = input("\nEnter command (list/exit): ").strip().lower()
-        if cmd in ['exit', 'quit', 'q']:
-            break
-        elif cmd == "list":
-            vs = get_vectorstore()
-            list_all_complaints()
