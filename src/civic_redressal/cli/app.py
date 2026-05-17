@@ -56,6 +56,17 @@ def main():
 
             description = description.strip() if description else ""
             process_new_complaint("", title, description)
+        
+        elif cmd.startswith("ragimg"):
+            parts = cmd[6:].split("|", 2)
+            if len(parts) < 3:
+                print("Usage: ragimg <image_path>|<title>|<description>")
+                print("If title or description is not available, use empty string but keep the delimiters. Example: ragimg /path/to/image.jpg|""|""")
+                continue
+            image_path, title, description = parts
+            print(f"Processing RAG with image. Image: {image_path}, Title: '{title}', Description: '{description}'")
+            process_new_complaint_rag(title.strip(), description.strip(), image_path.strip())
+
         elif cmd.startswith("rag"):
             text_input = cmd[3:].strip()
             if "|" in text_input:
@@ -75,15 +86,6 @@ def main():
 
             description = description.strip() if description else ""
             process_new_complaint_rag(title, description)
-        
-        elif cmd.startswith("ragimg"):
-            parts = cmd[6:].split("|", 2)
-            if len(parts) < 3:
-                print("Usage: ragimg <image_path>|<title>|<description>")
-                print("If title or description is not available, use empty string but keep the delimiters. Example: ragimg /path/to/image.jpg|""|""")
-                continue
-            image_path, title, description = parts
-            process_new_complaint_rag(title.strip(), description.strip(), image_path.strip())
 
         elif cmd.startswith("ingest"):
             path = cmd[6:].strip()

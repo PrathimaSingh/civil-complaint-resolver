@@ -13,6 +13,7 @@ def run_image_caption_agent(
             "image_caption": None,
             "messages": [AIMessage(content="No image provided for captioning.")],
         }
+    print(f"Running image captioning agent for complaint with title: '{state.get('title', 'N/A')}'")
     result = run_vision_caption_agent(image_path=image_path, model=model)
 
     return {
