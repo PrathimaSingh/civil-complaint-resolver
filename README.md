@@ -17,10 +17,10 @@ An AI-powered civil complaint resolution system that automatically analyzes, cat
 ## Prerequisites
 
 ### System Requirements
-- **Python**: 3.8 or higher
+- **Python**: 3.10 or higher
 - **Operating System**: Windows, macOS, or Linux
-- **RAM**: Minimum 4GB (8GB recommended for better performance)
-- **Storage**: 2GB free space for models and vector database
+- **RAM**: Minimum 8GB (16GB recommended for better performance)
+- **Storage**: 12GB free space for models and vector database
 
 ### Required Software
 - **Git**: For version control
@@ -61,15 +61,10 @@ conda activate civil-complaints
 
 ### 3. Install Dependencies
 ```bash
-pip install -r requirements.txt
+py -m pip install -e . 
 ```
 
-If `requirements.txt` doesn't exist, install these core packages:
-```bash
-pip install flask langchain langchain-chroma langchain-ollama pillow imagehash requests werkzeug
-```
-
-### 4. Set Up Ollama (Optional but Recommended)
+### 4. Set Up Ollama
 Ollama provides local AI models for better performance and privacy.
 
 #### Install Ollama
@@ -114,7 +109,6 @@ COLLECTION_NAME=civil_complaints
 
 #### Start the Flask Web Server
 ```bash
-python UI_App.py
 ```
 ```
 flask --app src/civic_redressal/main.py run
@@ -166,82 +160,126 @@ Available Commands:
 
 #### CLI Examples
 ```bash
-# Process image complaint
+# Process an image-based complaint
 new path/to/complaint_image.jpg
 
-# Process text complaint
+# Process a text-based complaint
 text "Potholes on Main Street causing traffic issues"
 
-# Close a complaint with resolved image
-close COMP12345 path/to/resolved_image.jpg
+# Process a complaint with retrieval-augmented reasoning
+rag "Broken streetlight near the park|The light has been out for several days"
+
+# Process an image complaint with RAG and captioning
+ragimg "path/to/complaint_image.jpg|Broken streetlight|The light is out near the park"
+
+# Ingest complaints from a CSV file
+ingest data/train.csv
+
+# Run batch prediction
+predict data/test.csv data/val.csv
 
 # View analytics
 analytics
-```
-
-### Method 3: Direct Python Execution
-
-#### Process a Single Complaint
-```python
-from civil_complaint_resolver import process_new_complaint
-
-# Process image complaint
-process_new_complaint("path/to/image.jpg")
-
-# Process text complaint
-process_new_complaint("", "Complaint title", "Complaint description")
 ```
 
 ## Project Structure
 
 ```
 civil-complaint-resolver/
-├── civil_complaint_resolver.py    # Core processing engine
-├── UI_App.py                      # Flask web application
-├── complaint_vector_db.py         # Vector database operations
-├── complaints_db.json             # Complaint metadata storage
-├── templates/                     # HTML templates
-│   ├── index.html                # Main upload interface
-│   ├── analytics.html            # Analytics dashboard
-│   ├── upload_incoming.html      # Incoming complaint form
-│   └── upload_resolved.html      # Resolved complaint form
-├── incoming_complaints/          # Uploaded complaint images
-├── resolved_complaints/          # Resolved complaint images
-├── sent_messages/                 # Communication logs
-├── chroma_complaints_db/         # Vector database storage
-├── .gitignore                    # Git ignore rules
-└── README.md                     # This file
+├── src/
+│   └── civic_redressal/
+│       ├── agents/
+│       │   ├── analytics/
+│       │   ├── intake/
+│       │   ├── predict/
+│       │   ├── retrieval/
+│       │   └── llm/
+│       ├── cli/
+│       │   └── app.py
+│       ├── services/
+│       │   └── complaint_service.py
+│       ├── web/
+│       │   ├── routes.py
+│       │   └── templates/
+│       ├── workflow/
+│       ├── retrieval/
+│       └── utils/
+├── data/                          # Training, validation, and sample complaint datasets
+├── results/                      # Prediction and ingestion outputs
+├── sent_messages/                # Complaint communication logs
+├── chroma_complaints_db/         # Chroma vector database storage
+├── tests/                        # Regression and unit tests
+├── pyproject.toml                # Project metadata and packaging
+├── requirements.txt              # Python dependencies
+├── README.md                     # Project documentation
+└── .gitignore                    # Git ignore rules
 ```
 
 ## API Usage
+
+The web app exposes a few simple HTTP endpoints for complaint intake, batch workflows, and analytics.
 
 ### RESTful Endpoints
 
 #### Submit New Complaint
 ```bash
-POST /upload_incoming
+POST /upload/incoming
 Content-Type: multipart/form-data
 
 # Form data:
 - file: Image file (optional)
-- url: Image URL (optional)
-- text: Text description (optional)
-- title: Complaint title (optional)
+- image_url: Remote image URL (optional)
+- complaint_title: Complaint title (optional)
+- complaint_description: Complaint description (optional)
+```
+
+#### Run RAG Processing
+```bash
+POST /rag
+Content-Type: application/x-www-form-urlencoded
+
+# Form data:
+- rag_input: <title>|<description>
+```
+
+#### Run RAG with Image
+```bash
+POST /ragimg
+Content-Type: application/x-www-form-urlencoded
+
+# Form data:
+- rag_input: <image_path>|<title>|<description>
+```
+
+#### Ingest Complaints from CSV
+```bash
+POST /ingest
+Content-Type: application/x-www-form-urlencoded
+
+# Form data:
+- csv_path: Path to the CSV file
+- title_column: Name of the title column (optional)
+- description_column: Name of the description column (optional)
+- image_column: Name of the image path column (optional)
+- category_column: Name of the category column (optional)
+- sub_category_column: Name of the sub-category column (optional)
+- civic_agency_column: Name of the civic agency column (optional)
+```
+
+#### Run Predictions
+```bash
+POST /predict
+Content-Type: application/x-www-form-urlencoded
+
+# Form data:
+- test_file_path: Path to the test CSV file
+- validation_file_path: Path to the validation CSV file
+- mode: predict or predict_rag
 ```
 
 #### Get Analytics
 ```bash
 GET /analytics
-```
-
-#### Close Complaint
-```bash
-POST /upload_resolved
-Content-Type: multipart/form-data
-
-# Form data:
-- complaint_id: ID of complaint to close
-- file: Resolved image file
 ```
 
 ## Troubleshooting
@@ -292,12 +330,13 @@ pip install -r requirements.txt
 
 ### Running Tests
 ```bash
-# Run basic functionality tests
-python -c "from civil_complaint_resolver import process_new_complaint; print('Import successful')"
+# Run the regression test for text sanitization
+pytest -q tests/test_util.py
+pytest -q tests/test_util.py
 ```
 
 ### Code Style
-This project follows PEP 8 Python coding standards. Use tools like `black` and `flake8` for code formatting and linting.
+This project follows PEP 8 Python coding standards. Use tools such as `black`, `ruff`, and `mypy` for formatting, linting, and type checking.
 
 ### Contributing
 1. Fork the repository
@@ -305,10 +344,6 @@ This project follows PEP 8 Python coding standards. Use tools like `black` and `
 3. Make your changes
 4. Add tests if applicable
 5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Support
 
