@@ -14,6 +14,21 @@ An AI-powered civil complaint resolution system that automatically analyzes, cat
 - **Analytics Dashboard**: Comprehensive analytics showing complaint trends and authority breakdowns
 - **RESTful API**: Programmatic access for integration with other systems
 
+## Web UI Overview
+
+The web interface presents the main workflows as a clean dashboard with six tiles:
+
+- **Upload New Complaint**: Start the standard intake workflow using image or text input
+- **Ingest CSV Complaints**: Load bulk complaints from a CSV file
+- **Run RAG Processing**: Process text complaints with retrieval-augmented reasoning
+- **RAG with Image**: Process image-based complaints with captioning + RAG
+- **Run Predictions**: Execute batch predictions on CSV datasets
+- **View Analytics**: Explore complaint trends, categories, and routing insights
+
+![Dashboard Screenshot](screenshots/web_UI.png)
+
+> Note: Image inputs can be a remote URL or a local image saved under `data/images/`.
+
 ## Prerequisites
 
 ### System Requirements
