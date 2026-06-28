@@ -127,8 +127,9 @@ Open your browser and go to: http://localhost:5000
 2. **File Upload**: Select image files from your computer
 3. **URL Input**: Paste image URLs from the web
 4. **Text Input**: Describe the complaint in text form
-5. **Submit**: Click submit to process the complaint
-6. **View Analytics**: Visit http://localhost:5000/analytics for dashboard
+5. **Image Note**: For local image files, place them in the data/images folder or provide a valid URL
+6. **Submit**: Click submit to process the complaint
+7. **View Analytics**: Visit http://localhost:5000/analytics for dashboard
 
 ### Method 2: Command Line Interface
 
