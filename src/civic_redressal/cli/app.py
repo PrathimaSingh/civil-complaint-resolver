@@ -1,7 +1,7 @@
 import os
 
 from civic_redressal.config import INCOMING_FOLDER
-from civic_redressal.services.complaint_service import ingest_complaints_from_csv, process_new_complaint, process_new_complaint_rag, close_complaint
+from civic_redressal.services.complaint_service import ingest_complaints_from_csv, predict_complaints, predict_rag_complaints, process_new_complaint, process_new_complaint_rag, close_complaint
 from civic_redressal.agents.analytics.agent import run_analytics_agent
 from civic_redressal.utils.util import read_multiline_description
 from civic_redressal.retrieval.complaint_repository import list_all_complaints
@@ -9,24 +9,26 @@ from civic_redressal.retrieval.complaint_repository import list_all_complaints
 def show_menu():
     print("\n" + "="*80)
     print("Available Commands:")
-    print("  new <image_path>                           -- Process new complaint from image")
-    print("  text <title>|<description>                 -- Process new complaint from text")
-    print("  rag <title>|<description>                  -- Process new complaint with RAG analysis")
-    print("  ragimg <image_path>|<title>|<description>  -- Process new complaint with image captioning + RAG")
-    print("  ingest <csv_path>                         -- Ingest complaints from CSV file")
-    print("  close <ID> <resolved_path>                 -- Close a complaint")
-    print("  analytics                                  -- Show analytics")
-    print("  list                                       -- List all complaints")
-    print("  exit                                       -- Quit")
+    print("  new <image_path>                                    -- Process new complaint from image")
+    print("  text <title>|<description>                          -- Process new complaint from text")
+    print("  rag <title>|<description>                           -- Process new complaint with RAG analysis")
+    print("  ragimg <image_path>|<title>|<description>           -- Process new complaint with image captioning + RAG")
+    print("  ingest <csv_path>                                   -- Ingest complaints from CSV file")
+    print("  predict <test_file_path> <validation_file_path>     -- Run prediction on all complaints (without rag)")
+    print("  predict_rag <test_file_path> <validation_file_path> -- Run prediction on all complaints (after ingestion)")
+    print("  close <ID> <resolved_path>                          -- Close a complaint")
+    print("  analytics                                           -- Show analytics")
+    print("  list                                                -- List all complaints")
+    print("  exit                                                -- Quit")
     print("="*80)
 
 def main():
     print("Civil Complaint Resolver System Started\n")
 
     # Process all images in incoming folder
-    for filename in os.listdir(INCOMING_FOLDER):
-        if filename.lower().endswith((".jpg", ".jpeg", ".png")):
-            process_new_complaint(os.path.join(INCOMING_FOLDER, filename))
+    # for filename in os.listdir(INCOMING_FOLDER):
+    #     if filename.lower().endswith((".jpg", ".jpeg", ".png")):
+    #         process_new_complaint(os.path.join(INCOMING_FOLDER, filename))
 
     while True:
         show_menu()
@@ -103,6 +105,22 @@ def main():
             print("Enter the column name for civic agency (leave blank for default: 'civic_agency'): ", end="")
             civic_agency_column = input().strip() or "civic_agency"
             ingest_complaints_from_csv(csv_path, title_column, description_column, image_column, category_column, sub_category_column, civic_agency_column)
+
+        elif cmd.startswith("predict_rag"):
+            parts = cmd[11:].split()
+            if len(parts) >= 2:
+                test_file_path, validation_file_path = parts[0], parts[1]
+                predict_rag_complaints(test_file_path, validation_file_path)
+            else:
+                print("Usage: predict_rag <test_file_path> <validation_file_path>")
+
+        elif cmd.startswith("predict"):
+            parts = cmd[7:].split()
+            if len(parts) >= 2:
+                test_file_path, validation_file_path = parts[0], parts[1]
+                predict_complaints(test_file_path, validation_file_path)
+            else:
+                print("Usage: predict <test_file_path> <validation_file_path>")
 
         elif cmd.startswith("close "):
             parts = cmd[6:].split()

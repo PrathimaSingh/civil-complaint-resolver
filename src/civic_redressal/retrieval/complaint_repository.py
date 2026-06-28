@@ -83,6 +83,9 @@ def store_multiple_documents_in_vector_db(complaints):
     ids = []
 
     for item in complaints:
+        if item.get("complaint_type") == "duplicate":
+            print(f"Skipping duplicate complaint: {item.get('title', 'N/A')} | Complaint ID: {item.get('complaint_id', 'N/A')}")
+            continue
         doc_item = {
             "title": item["title"],
             "description": item["description"],
@@ -118,7 +121,8 @@ def store_multiple_documents_in_vector_db(complaints):
         documents.append(Document(page_content=doc_text, metadata=metadata))
         ids.append(doc_id)
 
-    get_vectorstore().add_documents(documents=documents, ids=ids)
+    if documents:
+        get_vectorstore().add_documents(documents=documents, ids=ids)
 
     return ids
 

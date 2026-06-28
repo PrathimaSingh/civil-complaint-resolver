@@ -4,15 +4,20 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
-from civic_redressal.services.complaint_service import close_complaint, process_new_complaint
+from civic_redressal.services.complaint_service import (
+    close_complaint,
+    ingest_complaints_from_csv,
+    predict_complaints,
+    predict_rag_complaints,
+    process_new_complaint,
+    process_new_complaint_rag,
+)
 from civic_redressal.agents.analytics.agent import run_analytics_agent
 
 # Folders
-UPLOAD_FOLDER_INCOMING = "./incoming_complaints"
 UPLOAD_FOLDER_RESOLVED = "./resolved_complaints"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
-os.makedirs(UPLOAD_FOLDER_INCOMING, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_RESOLVED, exist_ok=True)
 
 def allowed_file(filename):
@@ -44,15 +49,10 @@ def upload_incoming():
         filepath = ""
         if has_file:
             file = request.files['file']
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                name, ext = os.path.splitext(filename)
-                new_filename = f"{name}_{timestamp}{ext}"
-
-                filepath = os.path.join(UPLOAD_FOLDER_INCOMING, new_filename)
-                file.save(filepath)
-                flash(f'Image uploaded: {new_filename}', 'success')
+            if file and allowed_file(file.filename or ""):
+                filename = secure_filename(file.filename or "")
+                filepath = filename
+                flash(f'Image uploaded: {filename}', 'success')
             else:
                 flash('Invalid file type', 'error')
                 return redirect(request.url)
@@ -91,8 +91,8 @@ def upload_resolved():
             flash('No selected file', 'error')
             return redirect(request.url)
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+        if file and allowed_file(file.filename or ""):
+            filename = secure_filename(file.filename or "")
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             new_filename = f"resolved_{complaint_id}_{timestamp}{os.path.splitext(filename)[1]}"
             
@@ -110,6 +110,128 @@ def upload_resolved():
             return redirect(url_for('web.upload_resolved'))
 
     return render_template('upload_resolved.html')
+
+@web_bp.get('/ingest')
+def ingest_page():
+    return render_template('ingest.html')
+
+
+@web_bp.route('/ingest', methods=['POST'])
+def run_ingest():
+    csv_path = request.form.get('csv_path', '').strip()
+    title_column = request.form.get('title_column', 'title').strip() or 'title'
+    description_column = request.form.get('description_column', 'description').strip() or 'description'
+    image_column = request.form.get('image_column', 'image_path').strip() or 'image_path'
+    category_column = request.form.get('category_column', 'category').strip() or 'category'
+    sub_category_column = request.form.get('sub_category_column', 'sub_category').strip() or 'sub_category'
+    civic_agency_column = request.form.get('civic_agency_column', 'civic_agency').strip() or 'civic_agency'
+
+    if not csv_path:
+        flash('CSV file path is required.', 'error')
+        return redirect(url_for('web.ingest_page'))
+
+    try:
+        ingest_complaints_from_csv(
+            csv_path,
+            title_column,
+            description_column,
+            image_column,
+            category_column,
+            sub_category_column,
+            civic_agency_column,
+        )
+        flash('Ingestion started successfully.', 'success')
+    except Exception as e:
+        flash(f'Ingestion failed: {str(e)}', 'error')
+
+    return redirect(url_for('web.ingest_page'))
+
+
+@web_bp.get('/rag')
+def rag_page():
+    return render_template('rag.html')
+
+
+@web_bp.route('/rag', methods=['POST'])
+def run_rag():
+    rag_input = request.form.get('rag_input', '').strip()
+    if not rag_input:
+        flash('Please provide a title and description.', 'error')
+        return redirect(url_for('web.rag_page'))
+
+    parts = rag_input.split('|', 2)
+    if len(parts) < 2:
+        flash('Expected format: <title>|<description>', 'error')
+        return redirect(url_for('web.rag_page'))
+
+    title = parts[0].strip()
+    description = parts[1].strip()
+
+    try:
+        process_new_complaint_rag(title, description)
+        flash('RAG complaint processing started.', 'success')
+    except Exception as e:
+        flash(f'RAG processing failed: {str(e)}', 'error')
+
+    return redirect(url_for('web.rag_page'))
+
+
+@web_bp.get('/ragimg')
+def ragimg_page():
+    return render_template('ragimg.html')
+
+
+@web_bp.route('/ragimg', methods=['POST'])
+def run_ragimg():
+    rag_input = request.form.get('rag_input', '').strip()
+    if not rag_input:
+        flash('Please provide an image path, title, and description.', 'error')
+        return redirect(url_for('web.ragimg_page'))
+
+    parts = rag_input.split('|', 2)
+    if len(parts) < 3:
+        flash('Expected format: <image_path>|<title>|<description>', 'error')
+        return redirect(url_for('web.ragimg_page'))
+
+    image_path = parts[0].strip()
+    title = parts[1].strip()
+    description = parts[2].strip()
+
+    try:
+        process_new_complaint_rag(title, description, image_path)
+        flash('RAG image complaint processing started.', 'success')
+    except Exception as e:
+        flash(f'RAG image processing failed: {str(e)}', 'error')
+
+    return redirect(url_for('web.ragimg_page'))
+
+
+@web_bp.get('/predict')
+def predict_page():
+    return render_template('predict.html')
+
+
+@web_bp.route('/predict', methods=['POST'])
+def run_prediction():
+    test_file_path = request.form.get('test_file_path', '').strip()
+    validation_file_path = request.form.get('validation_file_path', '').strip()
+    mode = request.form.get('mode', 'predict').strip()
+
+    if not test_file_path or not validation_file_path:
+        flash('Both test and validation CSV file paths are required.', 'error')
+        return redirect(url_for('web.predict_page'))
+
+    try:
+        if mode == 'predict_rag':
+            predict_rag_complaints(test_file_path, validation_file_path)
+        else:
+            predict_complaints(test_file_path, validation_file_path)
+        flash(f'Prediction started for {mode}.', 'success')
+    except Exception as e:
+        flash(f'Prediction failed: {str(e)}', 'error')
+
+    return redirect(url_for('web.predict_page'))
+
 
 @web_bp.get('/analytics')
 def analytics():

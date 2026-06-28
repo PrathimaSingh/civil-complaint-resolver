@@ -2,30 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Civil Complaint Resolver</title>
+    <title>CivicFix - An agentic AI powered Civic Complaint Resolution System</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 60px; background: #f8f9fa; }
-        h1 { color: #2c3e50; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #eef2f7 100%);
+            color: #2c3e50;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #5a6b7a;
+            font-size: 16px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 180px;
+        }
+        .card h3 {
+            margin: 0 0 8px 0;
+            font-size: 20px;
+        }
+        .card p {
+            margin: 0 0 16px 0;
+            color: #5a6b7a;
+            line-height: 1.5;
+            font-size: 14px;
+        }
         .btn {
             display: inline-block;
-            padding: 15px 30px;
-            margin: 15px;
-            font-size: 18px;
+            padding: 12px 16px;
+            font-size: 15px;
             text-decoration: none;
             border-radius: 8px;
             color: white;
+            text-align: center;
+            font-weight: 600;
         }
         .incoming { background: #28a745; }
-        .resolved { background: #dc3545; }
         .analytics { background: #007bff; }
+        .predict { background: #6f42c1; }
+        .ingest { background: #17a2b8; }
+        .rag { background: #fd7e14; }
+        .ragimg { background: #e83e8c; }
     </style>
 </head>
 <body>
-    <h1>🛠️ Civil Complaint Resolver System</h1>
-    <p><strong>Select an action:</strong></p>
-    
-    <a href="/upload/incoming" class="btn incoming">📤 Upload New Complaint Image</a><br>
-    <a href="/upload/resolved" class="btn resolved">✅ Upload Resolved Image & Close Complaint</a><br>
-    <a href="/analytics" class="btn analytics">📊 View Analytics</a>
+    <div class="container">
+        <h1>🛠️ CivicFix - An agentic AI powered Civic Complaint Resolution System</h1>
+        <p class="subtitle">Choose a workflow to process, ingest, analyze, or predict civic complaints.</p>
+
+        <div class="grid">
+            <div class="card">
+                <div>
+                    <h3>📤 Upload New Complaint</h3>
+                    <p>Submit a new complaint image or text to start the normal complaint-processing workflow.<br><br>Runs the new workflow: intake → routing → registration → storage → analytics.</p>
+                </div>
+                <a href="/upload/incoming" class="btn incoming">Open Upload Flow</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3>📥 Ingest CSV Complaints</h3>
+                    <p>Load complaints in bulk from a CSV file and begin ingestion into the system.<br><br>Handles bulk ingestion with duplicate check (for images), optional captioning, registration, storage, and analytics.</p>
+                </div>
+                <a href="/ingest" class="btn ingest">Open Ingestion</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3>🧠 Run RAG Processing</h3>
+                    <p>Process a complaint using the retrieval-augmented workflow with text input.<br><br>Executes retrieval → RAG LLM reasoning → routing → registration → storage → analytics.</p>
+                </div>
+                <a href="/rag" class="btn rag">Open RAG Flow</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3>🖼️ RAG with Image</h3>
+                    <p>Use the CLI-style format <strong>image_path|title|description</strong> for image-based RAG processing.<br><br>Runs captioning → retrieval → RAG LLM reasoning → routing → registration → storage → analytics.</p>
+                </div>
+                <a href="/ragimg" class="btn ragimg">Open Image RAG</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3>🧪 Run Predictions</h3>
+                    <p>Run batch predictions across complaint datasets for testing and validation.<br><br>Performs bulk prediction with LLM reasoning and analytics for CSV-based datasets.</p>
+                </div>
+                <a href="/predict" class="btn predict">Open Predictions</a>
+            </div>
+
+            <div class="card">
+                <div>
+                    <h3>📊 View Analytics</h3>
+                    <p>Inspect complaint summaries, trends, and insights generated by the analytics workflow.<br><br>Shows summaries and insights from the completed complaint workflows.</p>
+                </div>
+                <a href="/analytics" class="btn analytics">Open Analytics</a>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

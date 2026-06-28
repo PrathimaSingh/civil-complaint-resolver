@@ -10,6 +10,8 @@ from civic_redressal.workflow.graphs import (
     rag_app,
     rag_img_app,
     rag_ingest_app,
+    rag_prediction_app,
+    prediction_app,
     close_app,
 )
 from civic_redressal.utils.util import is_url
@@ -30,9 +32,8 @@ def process_new_complaint(image_path: str, title: str = None, description: str =
             display_name = os.path.basename(urlparse(image_path).path) or image_path
         else:
             if not os.path.exists(image_path):
-                print(f"Image not found: {image_path}")
-                return
-            display_name = os.path.basename(image_path)
+                print(f"Image file not present on disk yet, continuing with provided path: {image_path}")
+            display_name = os.path.basename(image_path) or image_path
     else:
         display_name = title or description or "Text-based complaint"
 
@@ -101,17 +102,17 @@ def ingest_complaints_from_csv(
 ):
     df = pd.read_csv(csv_path)
     complaintList = []
-    for _, row in df.iloc[:5].iterrows():  # Process first 5 rows as an example
-        title = row.get(title_column, "")
-        description = row.get(description_column, "")
-        image_path = row.get(image_column, "")
-        category = row.get(category_column, "")
+    for _, row in df.iloc[:5].iterrows():  # Process all rows
+        title = row.get(title_column, "N/A")
+        description = row.get(description_column, "N/A")
+        image_path = row.get(image_column, "N/A")
+        category = row.get(category_column, "N/A")
         print(f"Category column name: {category_column}")
         print(f"Category column value: {category}")
-        sub_category = row.get(sub_category_column, "")
+        sub_category = row.get(sub_category_column, "N/A")
         print(f"Sub-category column name: {sub_category_column}")
         print(f"Sub-category column value: {sub_category}")
-        civic_agency = row.get(civic_agency_column, "")
+        civic_agency = row.get(civic_agency_column, "N/A")
         print(f"Civic agency column name: {civic_agency_column}")
         print(f"Civic agency column value: {civic_agency}")
 
@@ -124,6 +125,7 @@ def ingest_complaints_from_csv(
             "authority": civic_agency,
             "messages": [HumanMessage(content="Ingest complaint in bulk")],
         }
+        print(f"Ingesting complaint: {complaint}")
         complaintList.append(complaint)
     input_data = {"complaints": complaintList}
 
@@ -135,6 +137,50 @@ def ingest_complaints_from_csv(
                 print(f"-- {last_msg.content}")
     print(f"\n{'=' * 100}")
 
+def predict_rag_complaints(test_file_path: str, validation_file_path: str):
+    # Placeholder for prediction logic
+    print(f"Running prediction on test file: {test_file_path} with validation file: {validation_file_path}")
+    df_test = pd.read_csv(test_file_path)
+    complaints = []
+    for _, row in df_test.iterrows():
+        complaint = {
+            "complaint_id": row.get("complaint_id"),
+            "title": row.get("title"),
+            "description": row.get("description"),
+            "messages": [HumanMessage(content="Predict complaint category and severity")],
+        }
+        complaints.append(complaint)
+    input_data = {"complaints": complaints, "test_file_path": test_file_path, "validation_file_path": validation_file_path}
+    config = {"configurable": {"thread_id": f"predict_{uuid.uuid4().hex[:12]}"}}
+    for chunk in rag_prediction_app.stream(input_data, config, stream_mode="values"):
+        if "messages" in chunk and chunk["messages"]:
+            last_msg = chunk["messages"][-1]
+            if isinstance(last_msg, AIMessage) and last_msg.content:
+                print(f"-- {last_msg.content}")
+    print(f"\n{'=' * 100}")
+
+def predict_complaints(test_file_path: str, validation_file_path: str):
+    # Placeholder for prediction logic
+    print(f"Running prediction on test file: {test_file_path} with validation file: {validation_file_path}")
+    df_test = pd.read_csv(test_file_path)
+    complaints = []
+    for _, row in df_test.iterrows():
+        complaint = {
+            "complaint_id": row.get("complaint_id"),
+            "title": row.get("title"),
+            "description": row.get("description"),
+            "image_path": row.get("image_path"),
+            "messages": [HumanMessage(content="Predict complaint category and severity")],
+        }
+        complaints.append(complaint)
+    input_data = {"complaints": complaints, "test_file_path": test_file_path, "validation_file_path": validation_file_path}
+    config = {"configurable": {"thread_id": f"predict_{uuid.uuid4().hex[:12]}"}}
+    for chunk in prediction_app.stream(input_data, config, stream_mode="values"):
+        if "messages" in chunk and chunk["messages"]:
+            last_msg = chunk["messages"][-1]
+            if isinstance(last_msg, AIMessage) and last_msg.content:
+                print(f"-- {last_msg.content}")
+    print(f"\n{'=' * 100}")
 
 def close_complaint(complaint_id: str, resolved_image_path: str):
     if not os.path.exists(resolved_image_path):

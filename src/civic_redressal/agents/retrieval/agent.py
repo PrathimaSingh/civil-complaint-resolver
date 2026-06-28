@@ -4,13 +4,13 @@ from langchain_core.messages import AIMessage
 from civic_redressal.agents.llm.agent import run_text_json_agent, run_vision_json_agent
 from civic_redressal.agents.retrieval.prompt import RETRIEVAL_RAG_PROMPT, RETRIEVAL_VISION_RAG_PROMPT
 from civic_redressal.retrieval.complaint_repository import retrieve_top_k_complaints
-from civic_redressal.workflow.state import ComplaintState
+from civic_redressal.workflow.state import ComplaintPredictionBatchState, ComplaintPredictionState, ComplaintState
 from civic_redressal.utils.constants import (
     CATEGORY_PROMPT_OPTIONS,
     SUBCATEGORY_PROMPT_OPTIONS,
     CIVIC_AGENCY_PROMPT_OPTIONS,
 )
-from civic_redressal.utils.util import format_context, image_to_base64, image_to_base64, read_prompt, sanitize_text
+from civic_redressal.utils.util import format_context, image_to_base64, sanitize_text
 
 
 def run_retrieval_agent(state: ComplaintState, topk: int = 5, metadatafilter=None) -> dict:
@@ -94,3 +94,37 @@ def run_retrieval_vision_llm_agent(state: ComplaintState) -> dict:
         return {
             "messages": [AIMessage(content="RAG analysis failed, proceeding without it.")],
         }
+
+def run_prediction_retrieval_agent(state: ComplaintPredictionState, topk: int = 5, metadatafilter=None) -> dict:
+    retrieved = retrieve_top_k_complaints(
+        title=state.get("title") or "",
+        description=state.get("description") or "",
+        image_caption=state.get("image_caption") or "",
+        top_k=topk,
+        metadata_filter=metadatafilter,
+    )
+    context = format_context(retrieved)
+    return {
+        "similar_complaints": context,
+        "messages": [AIMessage(content=f"Retrieved {len(retrieved)} similar complaints for reference.")],
+    }
+
+def run_bulk_prediction_retrieval_agent(state: ComplaintPredictionBatchState, topk: int = 5, metadatafilter=None) -> dict:
+    print(f"Running retrieval for batch of {len(state.get('complaints', []))} complaints...")
+    print("retrieval agent - validation file path: ", state.get("validation_file_path"))
+    processed_complaints = []
+    for complaint in state.get("complaints", []):
+        retrieved = retrieve_top_k_complaints(
+            title=complaint.get("title") or "",
+            description=complaint.get("description") or "",
+            image_caption=complaint.get("image_caption") or "",
+            top_k=topk,
+            metadata_filter=metadatafilter,
+        )
+        context = format_context(retrieved)
+        complaint_with_retrieval = {**complaint, "similar_complaints": context, "messages": [AIMessage(content=f"Retrieved {len(retrieved)} similar complaints for reference.")]}
+        processed_complaints.append(complaint_with_retrieval)
+    return {
+        **state,
+        "complaints": processed_complaints
+    }

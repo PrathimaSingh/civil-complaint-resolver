@@ -24,3 +24,24 @@ class ComplaintState(TypedDict):
 
 class ComplaintBatchState(TypedDict):
     complaints: List[ComplaintState]
+
+class ComplaintPredictionState(TypedDict):
+    complaint_id: str | None
+    title: str | None
+    description: str | None
+    image_path: str
+    predicted_description: str | None
+    predicted_category: str | None
+    predicted_sub_category: str | None
+    predicted_civic_agency: str | None
+    predicted_severity: str | None
+    predicted_confidence: int | None
+    similar_complaints: str | None  # RAG context of similar complaints
+    messages: Annotated[Sequence, add]
+
+class ComplaintPredictionBatchState(TypedDict):
+    complaints: List[ComplaintPredictionState]
+    test_file_path: str
+    validation_file_path: str
+    prediction_analytics: dict | None
+    messages: Annotated[Sequence, add]

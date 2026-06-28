@@ -310,7 +310,11 @@ if __name__ == "__main__":
     print("="*80)
     print("BATCH COMPLAINT PREDICTION UTILITY")
     print("="*80)
+    TEST_CSV_PATH = input("Enter the input CSV file path (default: data/model_pe_test.csv): ").strip()
+    if not TEST_CSV_PATH:
+        TEST_CSV_PATH = "data/model_pe_test.csv"
     print("Enter the prompt number:")
     PROMPT_NUMBER = input().strip()
-    OUTPUT_CSV_PATH = f"results/model_predictions_{PROMPT_NUMBER}.csv"
+    OUTPUT_CSV_PATH = f"results/{TEST_CSV_PATH.replace('/', '_').replace('.csv', f'_predictions_{PROMPT_NUMBER}.csv')}"
+    # OUTPUT_CSV_PATH = f"results/model_predictions_{PROMPT_NUMBER}.csv"
     run_batch_predictions()

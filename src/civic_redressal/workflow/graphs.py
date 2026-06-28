@@ -3,13 +3,14 @@ from langgraph.checkpoint.memory import MemorySaver
 
 from civic_redressal.agents.caption.agent import run_image_caption_agent, run_image_caption_bulk_agent
 from civic_redressal.agents.ingestion.agent import run_ingestion_bulk_agent
-from civic_redressal.workflow.state import ComplaintBatchState, ComplaintState
+from civic_redressal.agents.predict.agent import run_bulk_prediction_agent, run_bulk_prediction_rag_agent
+from civic_redressal.workflow.state import ComplaintBatchState, ComplaintPredictionBatchState, ComplaintState
 from civic_redressal.agents.intake.agent import run_intake_agent
-from civic_redressal.agents.retrieval.agent import run_retrieval_agent, run_retrieval_llm_agent, run_retrieval_vision_llm_agent
+from civic_redressal.agents.retrieval.agent import run_bulk_prediction_retrieval_agent, run_retrieval_agent, run_retrieval_llm_agent, run_retrieval_vision_llm_agent
 from civic_redressal.agents.routing.agent import run_routing_agent
-from civic_redressal.agents.registration.agent import run_registration_agent
+from civic_redressal.agents.registration.agent import run_registration_agent, run_registration_bulk_agent
 from civic_redressal.agents.storage.agent import run_storage_agent, run_storage_bulk_agent
-from civic_redressal.agents.analytics.agent import run_analytics_agent
+from civic_redressal.agents.analytics.agent import run_analytics_agent, run_prediction_analytics_agent
 from civic_redressal.agents.closure.agent import run_closure_agent
 
 memory = MemorySaver()
@@ -72,16 +73,40 @@ rag_img_app = rag_img_workflow.compile(checkpointer=memory)
 rag_ingest_workflow = StateGraph(ComplaintBatchState)
 rag_ingest_workflow.add_node("ingestion", run_ingestion_bulk_agent)
 rag_ingest_workflow.add_node("caption", run_image_caption_bulk_agent)
+rag_ingest_workflow.add_node("registration", run_registration_bulk_agent)
 rag_ingest_workflow.add_node("storage", run_storage_bulk_agent)
 rag_ingest_workflow.add_node("tracker", run_analytics_agent)
 
 rag_ingest_workflow.add_edge(START, "ingestion")
 rag_ingest_workflow.add_edge("ingestion", "caption")
-rag_ingest_workflow.add_edge("caption", "storage")
+rag_ingest_workflow.add_edge("caption", "registration")
+rag_ingest_workflow.add_edge("registration", "storage")
 rag_ingest_workflow.add_edge("storage", "tracker")
 rag_ingest_workflow.add_edge("tracker", END)
 
 rag_ingest_app = rag_ingest_workflow.compile(checkpointer=memory)
+
+rag_prediction_workflow = StateGraph(ComplaintPredictionBatchState)
+rag_prediction_workflow.add_node("caption", run_image_caption_bulk_agent)
+rag_prediction_workflow.add_node("retrieval", run_bulk_prediction_retrieval_agent)
+rag_prediction_workflow.add_node("prediction", run_bulk_prediction_rag_agent)
+rag_prediction_workflow.add_node("tracker", run_prediction_analytics_agent)
+rag_prediction_workflow.add_edge(START, "caption")
+rag_prediction_workflow.add_edge("caption", "retrieval")
+rag_prediction_workflow.add_edge("retrieval", "prediction")
+rag_prediction_workflow.add_edge("prediction", "tracker")
+rag_prediction_workflow.add_edge("tracker", END)
+
+rag_prediction_app = rag_prediction_workflow.compile(checkpointer=memory)
+
+prediction_workflow = StateGraph(ComplaintPredictionBatchState)
+prediction_workflow.add_node("prediction", run_bulk_prediction_agent)
+prediction_workflow.add_node("tracker", run_prediction_analytics_agent)
+prediction_workflow.add_edge(START, "prediction")
+prediction_workflow.add_edge("prediction", "tracker")
+prediction_workflow.add_edge("tracker", END)
+
+prediction_app = prediction_workflow.compile(checkpointer=memory)
 
 closeworkflow = StateGraph(ComplaintState)
 closeworkflow.add_node("closer", run_closure_agent)

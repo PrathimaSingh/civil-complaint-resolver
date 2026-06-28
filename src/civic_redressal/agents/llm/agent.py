@@ -3,9 +3,10 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langchain_ollama import ChatOllama
+from ollama import chat
 
 from civic_redressal.agents.caption.prompt import IMAGE_CAPTION_PROMPT
-from civic_redressal.utils.util import image_to_base64
+from civic_redressal.utils.util import image_to_base64, compute_image_hash
 
 
 def _clean_json_text(content: str) -> str:
@@ -26,14 +27,17 @@ def _parse_json_response(content: str) -> dict[str, Any]:
     cleaned = _clean_json_text(content)
     print(f"Raw LLM response:\n{content}\n")
     print(f"Cleaned JSON text:\n{cleaned}\n")
-    return json.loads(cleaned)
+    json_data = json.loads(cleaned)
+    print(f"Parsed JSON data:\n{json_data}\n")
+    return json_data
 
 
 def run_text_json_agent(prompt: str, model: str = "llama3.2:3b", temperature: float = 0.0) -> dict[str, Any]:
     print(f"Running text agent with model {model}...")
-    print(f"Prompt:\n{prompt}\n")
+    # print(f"Prompt:\n{prompt}\n")
     llm = ChatOllama(model=model, temperature=temperature)
     result = llm.invoke([HumanMessage(content=prompt)])
+    print(f"LLM raw response:\n{result.content}\n")
     return _parse_json_response(result.content)
 
 
@@ -73,6 +77,10 @@ def run_vision_caption_agent(
 
     try:
         image_b64 = image_to_base64(image_path)
+        image_hash = compute_image_hash(image_path)
+        print(f"Computed image hash: {image_hash}")
+        print(f"Image converted to base64 for captioning. Length: {len(image_b64)} characters.")
+        print(f"base64 Image Preview (first 100 chars): {image_b64[:100]}...")
 
         llm = ChatOllama(model=model, temperature=temperature)
         result = llm.invoke([
@@ -87,13 +95,30 @@ def run_vision_caption_agent(
             )
         ])
 
-        caption = result.content.strip()
+        response_content = result.content
+        if isinstance(response_content, list):
+            text_parts = []
+            for item in response_content:
+                if isinstance(item, str):
+                    text_parts.append(item)
+                elif isinstance(item, dict):
+                    text_value = item.get("text")
+                    if isinstance(text_value, str):
+                        text_parts.append(text_value)
+            response_content = "\n".join(text_parts).strip()
+        elif not isinstance(response_content, str):
+            response_content = str(response_content or "").strip()
+
+        print(f"Caption response:\n{response_content}\n")
+
+        caption = response_content
 
         return {
             "caption": caption,
             "status": "success",
             "model": model,
             "image_path": image_path,
+            "image_hash": image_hash,
         }
 
     except Exception as e:
@@ -103,4 +128,5 @@ def run_vision_caption_agent(
             "error": str(e),
             "model": model,
             "image_path": image_path,
+            "image_hash": image_hash,
         }

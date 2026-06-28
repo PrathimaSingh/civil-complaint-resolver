@@ -14,9 +14,7 @@ CATEGORY_CHOICES = [
     "Sewerage Systems",
     "Storm Water Drains",
     "Street lighting",
-    "Streetlights",
     "Traffic and Road Safety",
-    "Water Supply",
     "Water Supply and Services",
     "Yellow Spot",
 ]

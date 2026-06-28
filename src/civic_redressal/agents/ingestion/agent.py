@@ -1,7 +1,7 @@
 from langchain_core.messages import AIMessage
 
 from civic_redressal.workflow.state import ComplaintBatchState, ComplaintState
-from civil_complaint_resolver import find_duplicate_image
+from civic_redressal.utils.util import find_duplicate_image
 
 def run_ingestion_agent(state: ComplaintState) -> dict:
     # For now, this agent just passes through the data. In future, it can be used for data validation, enrichment, etc.
@@ -19,15 +19,25 @@ def run_ingestion_agent(state: ComplaintState) -> dict:
                 "messages": [AIMessage(content=f"Duplicate image found ID {duplicate['complaint_id']}. Skipped.")],
             }
 
-    return {
-        "title": state.get("title"),
-        "description": state.get("description"),
-        "image_path": state.get("image_path"),
-        "complaint_type": state.get("complaint_type", "other"),
-        "complaint_subtype": state.get("complaint_subtype", "other"),
-        "authority": state.get("authority", "other"),
-        "messages": [AIMessage(content="Ingestion complete.")],
-    }
+        return {
+            "title": state.get("title"),
+            "description": state.get("description"),
+            "image_path": state.get("image_path"),
+            "complaint_type": state.get("complaint_type", "other"),
+            "complaint_subtype": state.get("complaint_subtype", "other"),
+            "authority": state.get("authority", "other"),
+            "messages": [AIMessage(content="Ingestion complete.")],
+        }
+    else:
+        return {
+            "title": state.get("title"),
+            "description": state.get("description"),
+            "image_path": None,
+            "complaint_type": state.get("complaint_type", "other"),
+            "complaint_subtype": state.get("complaint_subtype", "other"),
+            "authority": state.get("authority", "other"),
+            "messages": [AIMessage(content="Ingestion complete.")],
+        }
 
 def run_ingestion_bulk_agent(state: ComplaintBatchState) -> dict:
     print(f"Running ingestion for batch of {len(state.get('complaints', []))} complaints...")

@@ -24,7 +24,7 @@ An AI-powered civil complaint resolution system that automatically analyzes, cat
 
 ### Required Software
 - **Git**: For version control
-- **Ollama**: For running local AI models (optional, fallback available)
+- **Ollama**: Version **v0.24.0** is required for the supported local model flow
 - **Web Browser**: Chrome, Firefox, Safari, or Edge
 
 ## Installation
@@ -78,12 +78,16 @@ Ollama provides local AI models for better performance and privacy.
 - **Linux**: Follow instructions at https://ollama.ai/download/linux
 
 #### Pull Required Models
-```bash
-# Pull the text embedding model
-ollama pull nomic-embed-text
+The project expects the following models to be available locally:
 
-# Pull vision-capable model (for image analysis)
-ollama pull llava:7b  # or another vision model
+- **nomic-embed-text**
+- **Llama3.2:3b**
+- **gemma4:e4b**
+
+```bash
+ollama pull nomic-embed-text
+ollama pull llama3.2:3b
+ollama pull gemma4:e4b
 ```
 
 ## Configuration
@@ -147,12 +151,17 @@ python -m civic_redressal.cli
 #### CLI Commands
 ```
 Available Commands:
-  new <image_path>           -- Process new complaint from image
-  text <title>|<description> -- Process new complaint from text
-  close <ID> <resolved_path> -- Close a complaint
-  analytics                  -- Show analytics
-  list                       -- List all complaints
-  exit                       -- Quit
+  new <image_path>                                    -- Process new complaint from image
+  text <title>|<description>                          -- Process new complaint from text
+  rag <title>|<description>                           -- Process new complaint with RAG analysis
+  ragimg <image_path>|<title>|<description>           -- Process new complaint with image captioning + RAG
+  ingest <csv_path>                                   -- Ingest complaints from CSV file
+  predict <test_file_path> <validation_file_path>     -- Run prediction on all complaints (without rag)
+  predict_rag <test_file_path> <validation_file_path> -- Run prediction on all complaints (after ingestion)
+  close <ID> <resolved_path>                          -- Close a complaint
+  analytics                                           -- Show analytics
+  list                                                -- List all complaints
+  exit                                                -- Quit
 ```
 
 #### CLI Examples

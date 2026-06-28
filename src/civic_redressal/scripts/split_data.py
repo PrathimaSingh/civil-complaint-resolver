@@ -6,7 +6,10 @@ from sklearn.model_selection import train_test_split
 INPUT_CSV = "../data/icmyc-2019-2022.csv"
 OUTPUT_DIR = "./data"
 TRAIN_OUTPUT = os.path.join(OUTPUT_DIR, "train.csv")
+TRAIN_WITHOUT_TARGETS_OUTPUT = os.path.join(OUTPUT_DIR, "train_without_targets.csv")
+VAL_WITH_TARGETS_OUTPUT = os.path.join(OUTPUT_DIR, "val_with_targets.csv")
 VAL_OUTPUT = os.path.join(OUTPUT_DIR, "val.csv")
+TEST_WITH_TARGETS_OUTPUT = os.path.join(OUTPUT_DIR, "test_with_targets.csv")
 TEST_OUTPUT = os.path.join(OUTPUT_DIR, "test.csv")
 
 RANDOM_STATE = 42
@@ -150,10 +153,14 @@ def main():
     
     # Remove columns from all dataframes
     df_train = df_train.drop(columns=[col for col in columns_to_remove if col in df_train.columns])
+    df_train_without_targets = df_train.drop(columns=[col for col in TARGET_COLUMNS if col in df_train.columns])
     df_val_non_null = df_val_non_null.drop(columns=[col for col in columns_to_remove if col in df_val_non_null.columns])
+    df_val_with_targets = df_val_non_null.copy()  # Keep targets for val_with_targets file
     df_test = df_test.drop(columns=[col for col in columns_to_remove if col in df_test.columns])
+    df_test_with_targets = df_test.copy()  # Keep targets for test_with_targets file
     
     # Remove target columns from val and test files (keep only in train)
+    df_train_without_targets = df_train.drop(columns=[col for col in TARGET_COLUMNS if col in df_train.columns])
     df_val_non_null = df_val_non_null.drop(columns=[col for col in TARGET_COLUMNS if col in df_val_non_null.columns])
     df_test = df_test.drop(columns=[col for col in TARGET_COLUMNS if col in df_test.columns])
     
@@ -161,12 +168,18 @@ def main():
     print(f"\nSaving splits to {OUTPUT_DIR}...")
     df_train.to_csv(TRAIN_OUTPUT, index=False)
     print(f"✓ Saved {len(df_train)} rows to {TRAIN_OUTPUT}")
+
+    df_train_without_targets.to_csv(TRAIN_WITHOUT_TARGETS_OUTPUT, index=False)
+    print(f"✓ Saved {len(df_train_without_targets)} rows to {TRAIN_WITHOUT_TARGETS_OUTPUT}")
     
     df_val_non_null.to_csv(VAL_OUTPUT, index=False)
     print(f"✓ Saved {len(df_val_non_null)} rows to {VAL_OUTPUT}")
+
+    df_val_with_targets.to_csv(VAL_WITH_TARGETS_OUTPUT, index=False)
+    print(f"✓ Saved {len(df_val_with_targets)} rows to {VAL_WITH_TARGETS_OUTPUT}")
     
-    df_test.to_csv(TEST_OUTPUT, index=False)
-    print(f"✓ Saved {len(df_test)} rows to {TEST_OUTPUT}")
+    df_test_with_targets.to_csv(TEST_WITH_TARGETS_OUTPUT, index=False)
+    print(f"✓ Saved {len(df_test_with_targets)} rows to {TEST_WITH_TARGETS_OUTPUT}")
     
     print(f"\n{'='*60}")
     print(f"Data splitting complete!")

@@ -5,7 +5,7 @@ from civic_redressal.workflow.state import ComplaintBatchState, ComplaintState
 
 
 def run_storage_agent(state: ComplaintState) -> dict:
-    if not state.get("complaint_id"):
+    if not state.get("complaint_id") or state.get("complaint_type") == "duplicate":
         return {"messages": [AIMessage(content="Skipped storage due to duplicate complaint.")]}
 
     try:

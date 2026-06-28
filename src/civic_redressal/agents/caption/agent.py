@@ -13,11 +13,13 @@ def run_image_caption_agent(
             "image_caption": None,
             "messages": [AIMessage(content="No image provided for captioning.")],
         }
-    print(f"Running image captioning agent for complaint with title: '{state.get('title', 'N/A')}'")
+    print(f"Running image captioning agent for complaint with title: '{state.get('title', 'N/A')}'\
+          | image_path: '{image_path}'")
     result = run_vision_caption_agent(image_path=image_path, model=model)
 
     return {
         "image_caption": result.get("caption"),
+        "image_hash": result.get("image_hash"),
         "messages": [
             AIMessage(
                 content=(
@@ -33,7 +35,7 @@ def run_image_caption_bulk_agent(state: ComplaintBatchState, model: str = "gemma
     print(f"Running image captioning for batch of {len(state.get('complaints', []))} complaints...")
     processed_complaints = []
     for complaint in state.get("complaints", []):
-        if not complaint.get("image_path"):
+        if not complaint.get("image_path") or complaint.get("image_path").strip() == "N/A":
             print(f"No image for complaint '{complaint.get('title', 'N/A')}', skipping captioning.")
             complaint_with_caption = {**complaint, "image_caption": None}
             processed_complaints.append(complaint_with_caption)

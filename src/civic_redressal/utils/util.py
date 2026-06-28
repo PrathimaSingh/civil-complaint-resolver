@@ -6,6 +6,9 @@ import msvcrt
 from PIL import Image
 import imagehash
 from io import BytesIO
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 
 from civic_redressal.db.json_db import load_complaints_db
 
@@ -22,7 +25,7 @@ def image_to_base64(image_path: str) -> str:
             response.raise_for_status()
             return base64.b64encode(response.content).decode("utf-8")
         else:
-            with open(image_path, "rb") as f:
+            with open("data/images/" + image_path, "rb") as f:
                 return base64.b64encode(f.read()).decode("utf-8")
     except Exception as e:
         print(f"Error converting image to base64: {e}")
@@ -45,40 +48,47 @@ def image_to_base64(image_path: str) -> str:
 def sanitize_text(text, keep_punctuation=False, keep_numbers=True, keep_hyphens=True):
     """
     Sanitize text by removing special characters.
-    
+
     Args:
         text: Input text to sanitize
         keep_punctuation: Keep common punctuation (.,!?;:-)
         keep_numbers: Keep digits 0-9
         keep_hyphens: Keep hyphens (useful for compound words)
-    
+
     Returns:
         Cleaned text with special characters removed
     """
-    if not text:
+    if text is None:
         return ""
-    
+
+    if not isinstance(text, str):
+        if isinstance(text, (int, float, bool)):
+            text = str(text)
+        else:
+            return ""
+
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+
     # Base pattern: letters, spaces, and optionally numbers/hyphens
     allowed_chars = r'a-zA-Z\s'
-    
+
     if keep_numbers:
         allowed_chars += r'0-9'
-    
+
     if keep_hyphens:
         allowed_chars += r'-'
-    
+
     if keep_punctuation:
         allowed_chars += r'.,!?;:-'
-    
-    # Remove all characters NOT in allowed set (global, case-insensitive)
-    cleaned = re.sub(f'[^ {allowed_chars}]', '', text)
-    
+
+    cleaned = re.sub(fr'[^ {allowed_chars}]', '', normalized)
+
     # Multiple spaces to single space
     cleaned = re.sub(r'\s+', ' ', cleaned)
-    
+
     # Strip leading/trailing whitespace
     cleaned = cleaned.strip()
-    
+
     return cleaned
 
 def read_multiline_description(prompt: str = "Enter complaint description. Press ESC to finish.") -> str:
@@ -117,7 +127,7 @@ def compute_image_hash(image_path: str) -> str:
             response.raise_for_status()
             img = Image.open(BytesIO(response.content)).convert("L")
         else:
-            img = Image.open(image_path).convert("L")
+            img = Image.open("data/images/" + image_path).convert("L")
         
         phash = str(imagehash.phash(img))
         dhash = str(imagehash.dhash(img))
@@ -159,7 +169,7 @@ def display_image(image_path: str):
     else:
         print(f"Displaying Image: {os.path.basename(image_path)}")
         try:
-            img = Image.open(image_path)
+            img = Image.open("data/images/" + image_path)
             img.show()
             print("-- Image opened in default viewer")
         except Exception as e:
@@ -184,3 +194,32 @@ Agency: {complaint['civic_agency']}"""
         )
     
     return "\n\n".join(context_parts)
+
+def show_confusion_matrix(actual, predicted, labels, title="Confusion Matrix"):
+
+    print(f"\n{title}")
+    print("Actual:")
+    print(actual)
+    print("Predicted:")
+    print(predicted)
+
+    cm = confusion_matrix(actual, predicted, labels=labels)
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', xticklabels=labels, yticklabels=labels, cmap='Blues')
+    plt.title(title)
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+
+def calculate_metrics(actual, predicted):
+    """Calculate evaluation metrics for predictions."""
+
+    accuracy = accuracy_score(actual, predicted)
+    precision, recall, f1, _ = precision_recall_fscore_support(actual, predicted, average='weighted')
+    
+    return {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1
+    }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ingest Complaints</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px auto; max-width: 700px; padding: 0 20px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .message { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin: 8px 0 12px; box-sizing: border-box; }
+        button { padding: 10px 18px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h2>📥 Ingest Complaints from CSV</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <p class="{% if category == 'error' %}error{% else %}message{% endif %}">{{ msg }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+        <form method="post">
+            <label for="csv_path">CSV File Path</label>
+            <input type="text" id="csv_path" name="csv_path" placeholder="e.g. data/train.csv" required>
+
+            <label for="title_column">Title Column</label>
+            <input type="text" id="title_column" name="title_column" value="title">
+
+            <label for="description_column">Description Column</label>
+            <input type="text" id="description_column" name="description_column" value="description">
+
+            <label for="image_column">Image Column</label>
+            <input type="text" id="image_column" name="image_column" value="image_path">
+
+            <label for="category_column">Category Column</label>
+            <input type="text" id="category_column" name="category_column" value="category">
+
+            <label for="sub_category_column">Sub-Category Column</label>
+            <input type="text" id="sub_category_column" name="sub_category_column" value="sub_category">
+
+            <label for="civic_agency_column">Civic Agency Column</label>
+            <input type="text" id="civic_agency_column" name="civic_agency_column" value="civic_agency">
+
+            <button type="submit">Start Ingestion</button>
+        </form>
+    </div>
+
+    <p><a href="/">← Back to Home</a></p>
+</body>
+</html>
